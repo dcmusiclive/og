@@ -28,13 +28,22 @@ export default async function og(req, res) {
   const browser = await chromium.puppeteer.launch(options);
 
   const [page] = await browser.pages();
-  await page.setViewport({ width: 1200, height: 627 });
-
   await page.goto(
-    `${origin}?title=${encodeURIComponent(
+    `${origin}/?title=${encodeURIComponent(
       sanitizedTitle
-    )}&description=${encodeURIComponent(sanitizedDescription)}`
+    )}&description=${encodeURIComponent(sanitizedDescription)}`,
+    {
+      waitUntil: "networkidle0",
+    }
   );
+  await page.setViewport({ width: 1200, height: 627 });
+  const imageBuffer = await page.screenshot();
 
-  return page.screenshot({ type: "png" });
+  await browser.close();
+  res.setHeader("Content-Type", "image/jpg");
+  res.setHeader(
+    "Cache-Control",
+    `public, immutable, no-transform, s-maxage=2592000, max-age=2592000`
+  );
+  res.send(imageBuffer);
 }
